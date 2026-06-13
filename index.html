@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>برای مانا ❤️</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:Tahoma, sans-serif; -webkit-tap-highlight-color:transparent; }
+  body {
+    background: linear-gradient(135deg,#ff9a9e,#fad0c4,#fbc2eb);
+    min-height:100vh; overflow:hidden; color:#5a2a3a; user-select:none;
+  }
+  .stage {
+    position:fixed; inset:0; display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:20px; gap:18px;
+    overflow-y:auto;
+  }
+  .stage.active { display:flex; }
+  h1 { font-size:24px; line-height:1.7; }
+  p  { font-size:18px; line-height:1.7; }
+  .btn {
+    background:#ff5e7e; color:#fff; border:none; border-radius:30px;
+    padding:14px 28px; font-size:18px; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.2);
+    transition:transform .1s;
+  }
+  .btn:active { transform:scale(.95); }
+  .btn.no { background:#888; position:relative; }
+
+  /* جمع‌آوری */
+  .world {
+    position:relative; width:300px; height:380px; background:rgba(255,255,255,.35);
+    border-radius:16px; overflow:hidden;
+  }
+  .falling { position:absolute; font-size:30px; top:-40px; }
+  #basket { position:absolute; bottom:6px; font-size:42px; transform:translateX(-50%); }
+
+  /* دونده (مسیر برعکس) */
+  #runner-ground { position:absolute; bottom:0; left:0; right:0; height:50px; background:#7c4a2d; border-radius:0 0 16px 16px; }
+  #runner-reza { position:absolute; bottom:50px; right:30px; font-size:38px; transition:bottom .15s, right 1.2s; }
+  #runner-mana { position:absolute; bottom:50px; left:10px; font-size:38px; }
+  .obstacle { position:absolute; bottom:50px; font-size:34px; }
+  #runner-progress-bar { position:absolute; top:10px; left:10px; right:10px; height:12px; background:#fff; border-radius:8px; overflow:hidden; }
+  #runner-progress-fill { height:100%; width:0; background:#ff5e7e; }
+
+  /* ستاره‌ها */
+  .stars-container {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 8px;
+    max-width: 95vw;
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 20px;
+  }
+  .star-item {
+    font-size: 28px;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+    text-align: center;
+    padding: 5px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 12px;
+  }
+  .star-item:active { transform: scale(0.9); }
+  .star-item.found {
+    opacity: 0.5;
+    background: #ff5e7e;
+    color: white;
+    cursor: default;
+    transform: none;
+  }
+
+  input.txt { padding:12px 16px; border-radius:24px; border:2px solid #ff5e7e; font-size:18px; text-align:center; width:220px; }
+  .photo-final { width:230px; border-radius:18px; box-shadow:0 8px 24px rgba(0,0,0,.3); margin-top:10px; background:#ffb6c1; padding:10px; font-size:60px; }
+  .confetti { position:fixed; top:-20px; font-size:22px; pointer-events:none; z-index:999; }
+  @keyframes fall { to { transform:translateY(110vh) rotate(360deg); } }
+  
+  .runaway-btn {
+    background:#ff5e7e; color:#fff; border:none; border-radius:30px;
+    padding:14px 28px; font-size:18px; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.2);
+    transition:transform 0.1s;
+    position:relative;
+    z-index:100;
+  }
+  .runaway-btn:active { transform:scale(.95); }
+  
+  .question-box {
+    background:rgba(255,255,255,0.5);
+    padding:20px;
+    border-radius:40px;
+    backdrop-filter:blur(5px);
+    margin:10px;
+  }
+  #questionMsg { font-weight:bold; color:#c72a4f; }
+  
+  /* اصلاح نمایش متن نهایی */
+  .final-text-container {
+    direction: ltr;
+    display: inline-block;
+    text-align: left;
+    font-size: 22px;
+    line-height: 1.8;
+    background: rgba(255,255,255,0.6);
+    padding: 15px;
+    border-radius: 20px;
+    margin-top: 10px;
+    white-space: pre-line;
+  }
+</style>
+</head>
+<body>
+
+<!-- مرحله ۱: سوال + دکمه فراری -->
+<div class="stage active" id="stage1">
+  <div class="question-box">
+    <h1>سلام مانای عزیزم 🌸</h1>
+    <p style="font-size:22px; margin:15px 0;">حالت چطوره؟ خوبی؟ 🥰</p>
+    <div style="display:flex; gap:20px; justify-content:center; margin-top:10px;">
+      <button class="runaway-btn" id="yesBtn">آره، خوبم ❤️</button>
+      <button class="runaway-btn no" id="noBtn">نه... 😔</button>
+    </div>
+    <p id="questionMsg" style="margin-top:20px; min-height:50px;"></p>
+  </div>
+</div>
+
+<!-- مرحله ۲: جمع‌آوری قلب‌ها -->
+<div class="stage" id="stage2">
+  <h1>مرحله ۱: قلب‌ها رو بگیر 💖</h1>
+  <p>سبد رو حرکت بده و ۵ تا قلب بگیر</p>
+  <p>گرفته شده: <span id="catch-score">0</span>/5</p>
+  <div class="world" id="catch-world">
+    <div id="basket">🧺</div>
+  </div>
+</div>
+
+<!-- مرحله ۳: دونده (برعکس) -->
+<div class="stage" id="stage3">
+  <h1>مرحله ۲: رضا رو به مانا برسون 🏃‍♂️➡️👩</h1>
+  <p>برای پریدن از موانع، صفحه رو لمس کن (مسیر برعکس)</p>
+  <div class="world" id="runner-world">
+    <div id="runner-progress-bar"><div id="runner-progress-fill"></div></div>
+    <div id="runner-ground"></div>
+    <div id="runner-reza">🏃‍♂️</div>
+    <div id="runner-mana">👩</div>
+  </div>
+</div>
+
+<!-- مرحله ۴: بی‌نهایت -->
+<div class="stage" id="stage4">
+  <h1>مرحله ۳: یه سوال 💭</h1>
+  <p>چقدر دوستت دارم؟ جوابشو بنویس</p>
+  <input class="txt" id="infinity-input" placeholder="جواب...">
+  <button class="btn" onclick="checkInfinity()">تایید</button>
+  <p id="infinity-msg"></p>
+</div>
+
+<!-- مرحله ۵: ستاره‌ی واقعی رو پیدا کن -->
+<div class="stage" id="stage5">
+  <h1>✨ ستاره‌ی واقعی رو پیدا کن ✨</h1>
+  <p>بین این همه ستاره، ۵ تا «مانا» پنهان شده. اونها رو پیدا کن!</p>
+  <p>پیدا شده: <span id="mana-found-count">0</span>/5</p>
+  <div id="stars-grid" class="stars-container"></div>
+</div>
+
+<!-- مرحله ۶: میمی -->
+<div class="stage" id="stage6">
+  <h1>مرحله ۵: یه چیز کوچولو 🥺</h1>
+  <p>یه میمی به من میدی؟ 💋</p>
+  <div style="display:flex; gap:14px;">
+    <button class="btn" onclick="kissYes()">آره 💕</button>
+    <button class="btn no" id="kissNoBtn">نه</button>
+  </div>
+  <p id="kiss-msg"></p>
+</div>
+
+<!-- مرحله ۷: پایان با متن درست -->
+<div class="stage" id="stage7">
+  <h1 id="final-text" class="final-text-container"></h1>
+  <div class="photo-final">💕😘💕</div>
+</div>
+
+<script>
+/* ---------- ناوبری ---------- */
+function goTo(n){
+  document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
+  const nextStage = document.getElementById('stage'+n);
+  if(nextStage) nextStage.classList.add('active');
+  if(n===2) initCatch();
+  if(n===3) initRunnerReversed();
+  if(n===4) initInfinity();
+  if(n===5) initManaFinder();
+  if(n===6) initKiss();
+  if(n===7) initFinal();
+}
+
+/* ---------- مرحله ۱: دکمه نه با کلیک فرار ---------- */
+let noClickCount = 0;
+function answerGood(isGood) {
+  const msgDiv = document.getElementById('questionMsg');
+  if(isGood) {
+    msgDiv.innerHTML = '❤️ خوشحالم که خوبی! بریم برای ادامه سورپرایز... ❤️';
+    setTimeout(() => { goTo(2); }, 1200);
+  } else {
+    noClickCount++;
+    msgDiv.innerHTML = `😜 نه؟ ${noClickCount} بار دکمه رو زدی ولی بازم فرار میکنم! 😜`;
+    moveNoButton();
+  }
+}
+function moveNoButton() {
+  const noBtn = document.getElementById('noBtn');
+  if(!noBtn) return;
+  if(noBtn.style.position !== 'fixed') {
+    noBtn.style.position = 'fixed';
+    noBtn.style.zIndex = '1000';
+    noBtn.style.transition = 'left 0.1s, top 0.1s';
+  }
+  const maxX = window.innerWidth - noBtn.offsetWidth - 15;
+  const maxY = window.innerHeight - noBtn.offsetHeight - 15;
+  const x = Math.max(10, Math.random() * maxX);
+  const y = Math.max(10, Math.random() * maxY);
+  noBtn.style.left = x + 'px';
+  noBtn.style.top = y + 'px';
+}
+document.getElementById('yesBtn').onclick = () => answerGood(true);
+document.getElementById('noBtn').onclick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  answerGood(false);
+};
+setTimeout(() => {
+  const noBtn = document.getElementById('noBtn');
+  if(noBtn && document.getElementById('stage1').classList.contains('active') && noClickCount >= 8) {
+    document.getElementById('questionMsg').innerHTML = '😊 باشه باشه! تو بردی! بریم سورپرایز رو ببین... 💕';
+    setTimeout(() => goTo(2), 1500);
+  }
+}, 20000);
+
+/* ---------- مرحله ۲: جمع‌آوری قلب ---------- */
+let catchScore=0, catchTimer=null;
+let catchMoveHandler=null, catchTouchHandler=null;
+function initCatch(){
+  catchScore=0;
+  document.getElementById('catch-score').textContent='0';
+  const world=document.getElementById('catch-world');
+  const basket=document.getElementById('basket');
+  basket.style.left='150px';
+  if(catchMoveHandler) world.removeEventListener('mousemove', catchMoveHandler);
+  if(catchTouchHandler) world.removeEventListener('touchmove', catchTouchHandler);
+  const move = (ev) => {
+    const rect=world.getBoundingClientRect();
+    let clientX;
+    if(ev.touches){
+      clientX = ev.touches[0].clientX;
+      ev.preventDefault();
+    } else {
+      clientX = ev.clientX;
+    }
+    let x = clientX - rect.left;
+    x = Math.max(20, Math.min(280, x));
+    basket.style.left = x + 'px';
+  };
+  catchMoveHandler = move;
+  catchTouchHandler = move;
+  world.addEventListener('mousemove', move);
+  world.addEventListener('touchmove', move, {passive: false});
+  if(catchTimer) clearInterval(catchTimer);
+  catchTimer = setInterval(()=>spawnHeart(world), 800);
+}
+function spawnHeart(world){
+  const e=['💖','⭐','💕','🌟','❤️'];
+  const h=document.createElement('div');
+  h.className='falling';
+  h.textContent=e[Math.floor(Math.random()*e.length)];
+  const x=Math.random()*260+10;
+  h.style.left=x+'px';
+  world.appendChild(h);
+  let top=-40;
+  let fallInterval;
+  const basket=document.getElementById('basket');
+  function fall(){
+    top+=5;
+    h.style.top=top+'px';
+    const bx=parseFloat(basket.style.left)||150;
+    if(top>=300 && top<=380 && Math.abs(x-bx)<45){
+      clearInterval(fallInterval);
+      if(h.parentNode) h.remove();
+      catchScore++;
+      document.getElementById('catch-score').textContent=catchScore;
+      if(catchScore>=5){
+        clearInterval(catchTimer);
+        const msg = document.createElement('p');
+        msg.textContent = '💝 همه قلب‌ها رو جمع کردی! آماده برای مرحله بعد... 💝';
+        msg.style.marginTop = '10px';
+        document.getElementById('catch-world').parentNode.appendChild(msg);
+        setTimeout(()=>goTo(3), 1200);
+      }
+    } else if(top>380){
+      clearInterval(fallInterval);
+      if(h.parentNode) h.remove();
+    }
+  }
+  fallInterval = setInterval(fall, 30);
+}
+
+/* ---------- مرحله ۳: دونده برعکس ---------- */
+let runnerProgress=0, obstacleTimerRev=null, isJumpingRev=false, runnerDoneRev=false, runnerObstaclesRev=[];
+function initRunnerReversed(){
+  runnerProgress=0; runnerDoneRev=false;
+  if(obstacleTimerRev) clearInterval(obstacleTimerRev);
+  runnerObstaclesRev.forEach(o => { if(o) o.remove(); });
+  runnerObstaclesRev = [];
+  document.getElementById('runner-progress-fill').style.width='0%';
+  const reza=document.getElementById('runner-reza');
+  reza.style.bottom='50px';
+  reza.style.right='30px';
+  reza.style.left='auto';
+  reza.style.transition = 'bottom 0.15s, right 1.2s';
+  const world=document.getElementById('runner-world');
+  const jumpHandler = (ev) => {
+    if(ev) ev.preventDefault();
+    if(!runnerDoneRev && !isJumpingRev) {
+      isJumpingRev=true;
+      reza.style.bottom='130px';
+      setTimeout(()=>{ 
+        if(reza) reza.style.bottom='50px'; 
+        isJumpingRev=false;
+      }, 350);
+    }
+  };
+  world.onclick = jumpHandler;
+  world.ontouchstart = (ev) => { ev.preventDefault(); jumpHandler(ev); };
+  obstacleTimerRev = setInterval(()=>spawnObstacleReversed(world), 1600);
+}
+function spawnObstacleReversed(world){
+  if(runnerDoneRev) return;
+  const e=['🌵','🪨','🔥','🌳','🧱'];
+  const o=document.createElement('div');
+  o.className='obstacle';
+  o.textContent=e[Math.floor(Math.random()*e.length)];
+  o.style.left='0px';
+  world.appendChild(o);
+  runnerObstaclesRev.push(o);
+  let x=0, passed=false;
+  const move=setInterval(()=>{
+    if(runnerDoneRev) { clearInterval(move); if(o.parentNode) o.remove(); return; }
+    x+=5;
+    o.style.left=x+'px';
+    const rezaRight = parseFloat(document.getElementById('runner-reza').style.right) || 30;
+    const rezaLeftFromRight = 300 - rezaRight - 38;
+    if(x > (rezaLeftFromRight - 20) && x < (rezaLeftFromRight + 40) && !passed){
+      passed=true;
+      if(isJumpingRev){
+        runnerProgress = Math.min(100, runnerProgress+18);
+        document.getElementById('runner-progress-fill').style.width=runnerProgress+'%';
+        if(runnerProgress>=100 && !runnerDoneRev){
+          finishRunnerReversed();
+        }
+      }
+    }
+    if(x>320){
+      clearInterval(move);
+      if(o.parentNode) o.remove();
+      const idx = runnerObstaclesRev.indexOf(o);
+      if(idx!==-1) runnerObstaclesRev.splice(idx,1);
+    }
+  }, 30);
+}
+function finishRunnerReversed(){
+  if(runnerDoneRev) return;
+  runnerDoneRev=true;
+  clearInterval(obstacleTimerRev);
+  runnerObstaclesRev.forEach(o => { if(o) o.remove(); });
+  const reza=document.getElementById('runner-reza');
+  reza.style.transition='right 1.2s';
+  reza.style.right='220px';
+  setTimeout(()=>goTo(4), 1400);
+}
+
+/* ---------- مرحله ۴: بی‌نهایت ---------- */
+function initInfinity() {
+  document.getElementById('infinity-input').value = '';
+  document.getElementById('infinity-msg').innerHTML = '';
+}
+function checkInfinity(){
+  const val=document.getElementById('infinity-input').value.trim().toLowerCase();
+  const ok=['بی نهایت','بی‌نهایت','بینهایت','∞','infinity','infinite','بینهایه','بی نهایه','بینهایت'];
+  const msg=document.getElementById('infinity-msg');
+  if(ok.some(w=>val.includes(w.toLowerCase())) || val==='بی نهایت'){
+    msg.textContent='دقیقاً همینقدر ♾️💗 همیشه دوستت دارم';
+    setTimeout(()=>goTo(5), 900);
+  } else {
+    msg.textContent='یه چیز خیلی خیلی بزرگ... دوباره فکر کن 😉';
+  }
+}
+
+/* ---------- مرحله ۵: پیدا کردن ۵ تا "مانا" بین ۱۰۰ ستاره ---------- */
+let manaFound = 0;
+function initManaFinder(){
+  const container = document.getElementById('stars-grid');
+  container.innerHTML = '';
+  manaFound = 0;
+  document.getElementById('mana-found-count').textContent = '0';
+  
+  const totalItems = 100;
+  const manaPositions = [];
+  while(manaPositions.length < 5){
+    const pos = Math.floor(Math.random() * totalItems);
+    if(!manaPositions.includes(pos)) manaPositions.push(pos);
+  }
+  
+  for(let i=0; i<totalItems; i++){
+    const item = document.createElement('div');
+    item.className = 'star-item';
+    if(manaPositions.includes(i)){
+      item.textContent = 'مانا';
+      item.dataset.isMana = 'true';
+    } else {
+      item.textContent = '⭐';
+      item.dataset.isMana = 'false';
+    }
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if(item.classList.contains('found')) return;
+      if(item.dataset.isMana === 'true'){
+        item.classList.add('found');
+        manaFound++;
+        document.getElementById('mana-found-count').textContent = manaFound;
+        item.style.transform = 'scale(1.2)';
+        setTimeout(()=>{ item.style.transform = ''; }, 200);
+        if(manaFound === 5){
+          const msg = document.createElement('p');
+          msg.textContent = '🎉 آفرین! همه ماناها رو پیدا کردی! بریم مرحله بعد 🎉';
+          msg.style.marginTop = '10px';
+          msg.style.color = '#c72a4f';
+          msg.style.fontWeight = 'bold';
+          container.parentNode.appendChild(msg);
+          setTimeout(()=> goTo(6), 1500);
+        }
+      } else {
+        item.style.transform = 'scale(0.9)';
+        setTimeout(()=>{ item.style.transform = ''; }, 150);
+        const tempMsg = document.createElement('div');
+        tempMsg.textContent = '🙈 این که ستاره است، مانا نیست!';
+        tempMsg.style.position = 'fixed';
+        tempMsg.style.bottom = '20px';
+        tempMsg.style.left = '50%';
+        tempMsg.style.transform = 'translateX(-50%)';
+        tempMsg.style.backgroundColor = '#ff5e7e';
+        tempMsg.style.color = 'white';
+        tempMsg.style.padding = '8px 16px';
+        tempMsg.style.borderRadius = '30px';
+        tempMsg.style.zIndex = '2000';
+        document.body.appendChild(tempMsg);
+        setTimeout(()=> tempMsg.remove(), 800);
+      }
+    });
+    container.appendChild(item);
+  }
+}
+
+/* ---------- مرحله ۶: میمی ---------- */
+let kissTries = 0;
+let kissMessages = ["نه؟؟ 😕", "تروخدا؟؟ 😢", "دلت میاد؟ 🥺", "آخه چرا؟ 😭", "بابا تو دیوانه‌ای؟ 😂", "خواهش می‌کنم 😘", "آخرین شانس... 💕"];
+function initKiss(){
+  kissTries = 0;
+  const noBtn = document.getElementById('kissNoBtn');
+  if(noBtn){
+    noBtn.style.position = 'relative';
+    noBtn.style.left = 'auto';
+    noBtn.style.top = 'auto';
+    noBtn.style.display = 'inline-block';
+    noBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      kissRun();
+    };
+  }
+  document.getElementById('kiss-msg').innerHTML = '';
+}
+function kissYes(){
+  document.getElementById('kiss-msg').innerHTML = '🙈 مرسی! منم دوستت دارم 💕😘';
+  setTimeout(()=>goTo(7), 1000);
+}
+function kissRun(){
+  kissTries++;
+  let msgIndex = Math.min(kissTries - 1, kissMessages.length - 1);
+  document.getElementById('kiss-msg').innerHTML = kissMessages[msgIndex];
+  const noBtn = document.getElementById('kissNoBtn');
+  if(noBtn){
+    if(noBtn.style.position !== 'fixed') {
+      noBtn.style.position = 'fixed';
+      noBtn.style.zIndex = '1000';
+      noBtn.style.transition = 'left 0.1s, top 0.1s';
+    }
+    const maxX = window.innerWidth - noBtn.offsetWidth - 15;
+    const maxY = window.innerHeight - noBtn.offsetHeight - 15;
+    const x = Math.max(10, Math.random() * maxX);
+    const y = Math.max(10, Math.random() * maxY);
+    noBtn.style.left = x + 'px';
+    noBtn.style.top = y + 'px';
+  }
+  if(kissTries >= 6){
+    document.getElementById('kiss-msg').innerHTML = '😒 باشه بابا! تو بردی! بیا بریم آخرش...';
+    setTimeout(()=>goTo(7), 1500);
+  }
+}
+
+/* ---------- مرحله ۷: پایان با متن درست و راست‌چین ---------- */
+function initFinal(){
+  const text = 'دیدی همه‌ی مراحل رو تکمیل کردی\nبهت افتخار میکنم\nبا تمام وجود دوستت دارم 🦭❤️';
+  const el = document.getElementById('final-text');
+  el.innerHTML = '';
+  el.style.direction = 'rtl';  // برای نمایش درست فارسی
+  el.style.textAlign = 'center';
+  el.style.whiteSpace = 'pre-line';
+  
+  let i = 0;
+  function typeNext() {
+    if (i < text.length) {
+      // اضافه کردن کاراکتر به صورت عادی (نه معکوس)
+      el.innerHTML += text[i];
+      i++;
+      setTimeout(typeNext, 70);
+    }
+  }
+  typeNext();
+  launchConfetti();
+}
+
+function launchConfetti(){
+  const emojis=['❤️','💕','✨','🌸','💖','🎉','💗','😘','💋'];
+  for(let i=0;i<60;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    c.style.left=Math.random()*100+'vw';
+    c.style.animation='fall '+(2+Math.random()*3)+'s linear forwards';
+    c.style.fontSize=(18+Math.random()*20)+'px';
+    c.style.animationDelay=(Math.random()*1.5)+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 6000);
+  }
+}
+</script>
+</body>
+</html>
